@@ -10,7 +10,7 @@ permissions:
 jobs:
   # Call your completely separate existing CI file
   ci:
-    uses: ./.github/workflows/anything-ci.yml
+    uses: ./.github/workflows/demo-ci.yml
  
   # =========================================================================
   # DEPLOY TO DEV (REUSING TEMPLATE)
