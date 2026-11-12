@@ -1,0 +1,48 @@
+name: Demo CICD Multi-Stage Deployment
+on:
+  workflow_run:
+    workflows: ["Demo CI Pipeline"] # 🌟 CRUCIAL: Match the exact name field from the top of the CI workflow
+    types:
+      - completed              # Triggers when the target workflow completely finishes running
+permissions:
+  id-token: write # 🌟 Required for requesting the JWT OIDC token
+  contents: read  # 🌟 Required for actions/checkout
+jobs:
+  # Call your completely separate existing CI file
+  ci:
+    uses: ./.github/workflows/anything-ci.yml
+ 
+  # =========================================================================
+  # DEPLOY TO DEV (REUSING TEMPLATE)
+  # =========================================================================
+  deploy-dev:
+    name: Dev Stage
+    needs: ci    
+    uses: ./.github/workflows/deploy-template.yml
+    with:
+      environment-name: 'dev' 
+    # 🌟 Explicitly maps the secret permission layer to the template
+    secrets: inherit
+ 
+  # =========================================================================
+  # DEPLOY TO UAT (REUSING TEMPLATE)
+  # =========================================================================
+  deploy-uat:
+    name: UAT Stage
+    needs: deploy-dev     
+    uses: ./.github/workflows/deploy-template.yml
+    with:
+      environment-name: 'uat'    
+    # 🌟 Explicitly maps the secret permission layer to the template
+    secrets: inherit 
+  # =========================================================================
+  # DEPLOY TO PROD (REUSING TEMPLATE)
+  # =========================================================================
+  deploy-prod:
+    name: Prod Stage
+    needs: deploy-uat   
+    uses: ./.github/workflows/deploy-template.yml
+    with:
+      environment-name: 'prod'  
+    # 🌟 Explicitly maps the secret permission layer to the template
+    secrets: inherit
