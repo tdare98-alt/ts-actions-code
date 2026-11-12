@@ -48,5 +48,5 @@ jobs:
     with:
       environment-name: 'prod'
       runid: ${{ github.event.workflow_run.id }}
-    # 🌟 Explicitly maps the secret permission layer to the template
+    # 🌟 Explicitly maps the secret permission layer to the template test
     secrets: inherit
