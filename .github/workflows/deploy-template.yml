@@ -1,0 +1,96 @@
+name: Shared Deployment Blueprint
+ 
+on:
+
+  workflow_call:
+
+    inputs:
+
+      environment-name:
+
+        required: true
+
+        type: string
+
+        description: "The targeted GitHub environment name (e.g., dev, uat, prod)"
+ 
+permissions:
+
+  contents: read
+ 
+jobs:
+
+  deploy:
+
+    name: Deploy to ${{ inputs.environment-name }}
+
+    runs-on: ubuntu-latest
+
+    environment: ${{ inputs.environment-name }}
+
+    # if: |
+
+    #   github.ref == 'refs/heads/main' &&
+
+    #   github.event.workflow_run.conclusion == 'success'
+ 
+    steps:
+
+      - name: Download Build Artifact
+
+        uses: actions/download-artifact@v4
+
+        with:
+
+          name: node-app
+ 
+      - name: Verify Build Artifact
+
+        run: test -f dist/index.js
+
+       # 2. Copy compiled dist/, package.json, and package-lock.json to the VM
+
+      - name: Copy build files to Windows VM via SCP
+
+        uses: appleboy/scp-action@v0.1.7
+
+        with:
+
+          host: ${{ secrets.VM_HOST }}
+
+          username: ${{ secrets.VM_USER }}
+
+          password: ${{ secrets.VM_PASSWORD }}
+
+          source: "dist/**,package.json,package-lock.json"
+
+          target: "C:/apps/tyler"
+ 
+      # 3. Install production-only dependencies on the VM and restart PM2
+
+      - name: Install prod dependencies and restart PM2 via SSH
+
+        uses: appleboy/ssh-action@v1.0.3
+
+        with:
+
+          host: ${{ secrets.VM_HOST }}
+
+          username: ${{ secrets.VM_USER }}
+
+          password: ${{ secrets.VM_PASSWORD }}
+
+          script: |
+
+            powershell -Command "
+
+              cd C:\apps\tyler;
+
+              npm ci --omit=dev;
+
+              pm2 restart my-ts-app || pm2 start dist/index.js --name my-ts-app;
+
+              pm2 save
+
+            "
+
