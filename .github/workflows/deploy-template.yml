@@ -13,10 +13,15 @@ on:
         type: string
 
         description: "The targeted GitHub environment name (e.g., dev, uat, prod)"
+      runid: 
+        required: true 
+        type: string
+        description: "runid input"
  
 permissions:
 
   contents: read
+  actions: read
  
 jobs:
 
@@ -28,11 +33,11 @@ jobs:
 
     environment: ${{ inputs.environment-name }}
 
-    # if: |
+    if: |
 
-    #   github.ref == 'refs/heads/main' &&
+       github.ref == 'refs/heads/main' &&
 
-    #   github.event.workflow_run.conclusion == 'success'
+       github.event.workflow_run.conclusion == 'success'
  
     steps:
 
@@ -43,6 +48,9 @@ jobs:
         with:
 
           name: node-app
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          runid: ${{ inputs.runid }}
+        
  
       - name: Verify Build Artifact
 
