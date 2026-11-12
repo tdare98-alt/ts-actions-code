@@ -1,0 +1,68 @@
+name: Demo CI Pipeline
+ 
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_call: {} # 🌟 This makes this file reusable by other files!
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+ 
+    steps:
+      # Step 3: Checkout source code using the latest major version
+      - name: Checkout Source
+        uses: actions/checkout@v7
+ 
+      # Step 4: Set up the Node.js runtime
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22' # Upgraded to 22 (LTS) as Node 20 faces upcoming deprecation
+ 
+      # Step 5: Cache npm's downloaded package data so npm ci can reuse it on later runs.
+      # Hashing the lockfile gives dependency changes a fresh cache; the restore prefix reuses older caches.
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+ 
+      - name: Clean Install Dependencies
+        run: npm ci
+ 
+      # Step 6: Static Code Analysis (Linting, Formatting, Security)
+      - name: Code Layout Validation (Prettier)
+        run: npm run format:write # Maps to: prettier --write .
+ 
+      - name: Semantic Analysis (ESLint)
+        run: npm run lint # Maps to: eslint .
+        # Step 7: runs a vulnerability scanner against all the open-source libraries (dependencies) listed in the project. It acts as an automated security guard for third-party code.
+      # - name: Security Scanning
+      #   run: npm audit --audit-level=high
+ 
+      # Step 8: Build and Compilation (Type Verification & Bundling)
+      - name: TypeScript Type Verification
+        run: npx tsc --noEmit
+ 
+      - name: Production Build
+        run: npm run package
+ 
+      # Step 9: Automated Testing & Reporting
+      - name: Run Automated Tests
+        run: npm test -- --coverage # Generates test execution and coverage data
+ 
+      # step 10: upload build artifact
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: |
+            dist/
+            package.json
+            package-lock.json
+          retention-days: 1
